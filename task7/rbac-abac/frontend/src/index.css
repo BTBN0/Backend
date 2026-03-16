@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-ink text-snow font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar       { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-rim rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-mist; }
+
+  /* Selection */
+  ::selection { @apply bg-iris/30 text-snow; }
+}
+
+@layer components {
+  /* Grid noise overlay */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(123,108,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,108,255,.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  /* Glass card */
+  .glass {
+    @apply bg-plate/80 backdrop-blur-sm border border-rim/60;
+  }
+
+  /* Tag variants */
+  .tag-admin   { @apply bg-gold/10  text-gold   text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-user    { @apply bg-moss/10  text-moss   text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-manager { @apply bg-iris/10  text-iris   text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-allowed { @apply bg-moss/10  text-moss   text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-denied  { @apply bg-flame/10 text-flame  text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-active  { @apply bg-moss/10  text-moss   text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-inactive{ @apply bg-flame/10 text-flame  text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded; }
+  .tag-perm    { @apply bg-iris/10  text-iris   text-[10px] font-mono    tracking-wide          px-2 py-0.5 rounded; }
+
+  /* Input base */
+  .input-base {
+    @apply w-full bg-ink border border-rim rounded-lg px-3.5 py-2.5
+           text-snow font-mono text-sm placeholder-ghost/40
+           outline-none transition-all duration-200
+           focus:border-iris focus:ring-2 focus:ring-iris/15;
+  }
+
+  /* Sidebar item */
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-2.5 text-ghost text-sm
+           border-l-2 border-transparent cursor-pointer
+           transition-all duration-150 select-none;
+  }
+  .nav-item:hover  { @apply text-snow bg-iris/5; }
+  .nav-item.active { @apply text-iris border-l-iris bg-iris/10; }
+}

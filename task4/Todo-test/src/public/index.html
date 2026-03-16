@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="mn">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Todo-test — Batsuuri</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+    <main class="container">
+        <h1>Todo-list</h1>
+
+        <form id="addForm" class="add-form">
+            <input id="titleInput" type="text" placeholder="Шинэ todo нэр..." required />
+            <button type="submit">Нэм</button>
+        </form>
+
+        <section id="listSection" class="list-section">
+            <ul id="todoList"></ul>
+        </section>
+
+        <template id="todoTpl">
+            <li class="todo-item">
+                <label>
+                    <input type="checkbox" class="todo-done" />
+                    <span class="todo-title"></span>
+                </label>
+                <div class="actions">
+                    <button class="edit-btn">Edit</button>
+                    <button class="delete-btn">Delete</button>
+                </div>
+            </li>
+        </template>
+    </main>
+
+    <script src="/app.js"></script>
+</body>
+
+</html>

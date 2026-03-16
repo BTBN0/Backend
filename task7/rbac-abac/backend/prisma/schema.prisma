@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── RBAC: Role-Based Access Control ───────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RBAC: User-д Role байна
+  roles     UserRole[]
+
+  // ABAC: User-ын attributes (нэмэлт шинж чанар)
+  department String?   // жнь: "engineering", "finance", "hr"
+  level      Int       @default(1) // 1=junior, 2=mid, 3=senior, 4=lead
+  region     String?   // жнь: "MN", "US", "EU"
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique  // "admin", "user", "manager", "moderator"
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Role-д Permission байна
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  action      String   // "read", "write", "delete", "manage"
+  resource    String   // "users", "posts", "reports", "settings"
+  description String?
+
+  roles       RolePermission[]
+
+  @@unique([action, resource])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ─── ABAC: Attribute-Based Policy ──────────────────────────────────────────
+
+model AbacPolicy {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  
+  // Policy нөхцөлүүд (JSON хэлбэрт)
+  // жнь: { "department": "finance", "level": { "gte": 3 } }
+  subjectConditions Json  // User-ын attribute шалгах
+  
+  // жнь: { "resource": "reports", "action": "read" }
+  resourceConditions Json // Resource-ын attribute шалгах
+  
+  effect    PolicyEffect @default(ALLOW)
+  priority  Int          @default(0) // өндөр priority = эхэлж шалгагдана
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  @@map("abac_policies")
+}
+
+enum PolicyEffect {
+  ALLOW
+  DENY
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  result     String   // "allowed", "denied"
+  reason     String?  // яагаад зөвшөөрсөн/татгалзсан
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
