@@ -1,0 +1,7 @@
+.list { display: flex; flex-direction: column; gap: 10px; }
+.row  { display: flex; align-items: center; gap: 10px; }
+.label { width: 80px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+.track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+.fill  { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.val   { width: 52px; font-size: 12px; font-family: var(--mono); color: var(--text); }
+.empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px; }

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cache Strategy Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c6af7;
+    --accent2: #f97316;
+    --hit: #22c55e;
+    --miss: #ef4444;
+    --text: #e2e2f0;
+    --muted: #555570;
+    --card: #13131c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,106,247,0.08) 0%, transparent 70%);
+    top: -200px; left: -100px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative; z-index: 1;
+    padding: 32px 40px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  .logo {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+
+  header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  header p { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+  .ttl-badge {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .ttl-badge span { color: var(--muted); }
+  .ttl-badge strong { color: var(--accent2); }
+
+  .ttl-badge input[type=range] {
+    width: 100px;
+    accent-color: var(--accent);
+  }
+
+  .ttl-badge button {
+    background: var(--accent);
+    border: none; color: white;
+    border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: opacity .2s;
+  }
+  .ttl-badge button:hover { opacity: .8; }
+
+  main {
+    position: relative; z-index: 1;
+    padding: 32px 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 24px;
+    max-width: 1400px;
+  }
+
+  /* Stats row */
+  .stats {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color .2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .stat-value { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-value.green { color: var(--hit); }
+  .stat-value.red { color: var(--miss); }
+  .stat-value.purple { color: var(--accent); }
+  .stat-value.orange { color: var(--accent2); }
+
+  /* Panel */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  .panel-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .panel-header h2 { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  .panel-header .task-tag {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(124,106,247,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.purple { background: var(--accent); }
+  .dot.orange { background: var(--accent2); }
+  .dot.green { background: var(--hit); }
+  .dot.red { background: var(--miss); }
+
+  .panel-body { padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+  /* User buttons */
+  .user-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+
+  .user-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all .2s;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+  .user-btn:hover { border-color: var(--accent); background: rgba(124,106,247,0.05); }
+  .user-btn .uid { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .user-btn .uname { font-size: 13px; font-weight: 600; margin-top: 2px; }
+
+  /* Result box */
+  .result-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    min-height: 80px;
+    color: var(--muted);
+    transition: border-color .3s;
+    word-break: break-all;
+  }
+
+  .result-box.hit { border-color: var(--hit); }
+  .result-box.miss { border-color: var(--miss); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge.hit { background: rgba(34,197,94,.15); color: var(--hit); }
+  .badge.miss { background: rgba(239,68,68,.15); color: var(--miss); }
+  .badge.info { background: rgba(124,106,247,.15); color: var(--accent); }
+
+  /* Update form */
+  .update-row {
+    display: flex; gap: 8px;
+  }
+
+  .update-row select,
+  .update-row input[type=text] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    flex: 1;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .update-row select:focus,
+  .update-row input[type=text]:focus { border-color: var(--accent2); }
+
+  .btn {
+    background: var(--accent2);
+    border: none; color: white;
+    border-radius: 8px; padding: 8px 18px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: opacity .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: .85; }
+  .btn.purple { background: var(--accent); }
+
+  /* Log panel */
+  .log-panel {
+    grid-column: 1 / -1;
+  }
+
+  .log-list {
+    padding: 16px 24px;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-item {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid transparent;
+    animation: slideIn .25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-item.hit-log { border-color: rgba(34,197,94,.2); }
+  .log-item.miss-log { border-color: rgba(239,68,68,.2); }
+  .log-item.update-log { border-color: rgba(249,115,22,.2); }
+  .log-item.ttl-log { border-color: rgba(124,106,247,.2); }
+
+  .log-time { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+  .log-msg { color: var(--text); }
+
+  /* Cache state panel */
+  .cache-state {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .cache-key-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color .3s;
+  }
+
+  .cache-key-row.active { border-color: var(--hit); }
+  .cache-key-row.empty { opacity: .5; }
+
+  .key-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); flex-shrink: 0; width: 60px; }
+  .key-data { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); flex: 1; }
+  .key-ttl {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--accent2);
+    flex-shrink: 0;
+  }
+
+  .progress-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--hit); border-radius: 2px; transition: width .9s linear; }
+
+  /* TTL timer section */
+  .ttl-demo {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  .timer-ring {
+    display: flex; justify-content: center; align-items: center;
+    padding: 10px 0;
+  }
+
+  .timer-ring svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+  .ring-fg { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset .9s linear; }
+  .ring-label { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; fill: var(--text); dominant-baseline: middle; text-anchor: middle; }
+  .ring-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--muted); dominant-baseline: middle; text-anchor: middle; }
+
+  .empty-state { color: var(--muted); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; padding: 20px; }
+    .stats { grid-template-columns: repeat(2,1fr); }
+    header { padding: 20px; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>Cache Strategy Dashboard</h1>
+    <p>Redis + Node.js · Cache Aside Pattern</p>
+  </div>
+  <div class="ttl-badge">
+    <span>TTL:</span>
+    <strong id="ttlDisplay">15</strong><span>s</span>
+    <input type="range" id="ttlRange" min="3" max="60" value="15" />
+    <button onclick="applyTTL()">Apply</button>
+  </div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Cache Hits</div>
+      <div class="stat-value green" id="statHit">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cache Misses</div>
+      <div class="stat-value red" id="statMiss">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Hit Rate</div>
+      <div class="stat-value purple" id="statRate">0%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Invalidations</div>
+      <div class="stat-value orange" id="statInvalid">0</div>
+    </div>
+  </div>
+
+  <!-- Task 1 & 2: Cache Hit/Miss -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="dot purple"></div>
+      <h2>User Lookup — Cache Hit / Miss</h2>
+      <span class="task-tag">Task 1 · 2</span>
+    </div>
+    <div class="panel-body">
+      <div class="user-grid" id="userButtons">
+        <button class="user-btn" onclick="fetchUser(1)">
+          <div class="uid">user:1</div>
+          <div class="uname" id="uname1">Alice</div>
+        </button>
+        <button class="user-btn" onclick="fetchUser(2)">
+          <div class="uid">user:2</div>
+          <div class="uname" id="uname2">Bob</div>
+        </button>
+        <button class="user-btn" onclick="fetchUser(3)">
+          <div class="uid">user:3</div>
+          <div class="uname" id="uname3">Charlie</div>
+        </button>
+      </div>
+      <div class="result-box empty-state" id="fetchResult">
+        User-г сонгоод дарна уу...
+      </div>
+    </div>
+  </div>
+
+  <!-- Task 3: Cache Invalidation -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="dot orange"></div>
+      <h2>Cache Invalidation — Update</h2>
+      <span class="task-tag">Task 3 · 4</span>
+    </div>
+    <div class="panel-body">
+      <div class="update-row">
+        <select id="updateUserId">
+          <option value="1">user:1 — Alice</option>
+          <option value="2">user:2 — Bob</option>
+          <option value="3">user:3 — Charlie</option>
+        </select>
+        <input type="text" id="updateName" placeholder="Шинэ нэр..." />
+        <button class="btn" onclick="updateUser()">Update</button>
+      </div>
+      <div class="result-box empty-state" id="updateResult">
+        Update хийхэд cache key устна...
+      </div>
+
+      <div style="margin-top:4px">
+        <div style="font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-bottom:8px;">CACHE STATE</div>
+        <div class="cache-state" id="cacheState">
+          <div class="cache-key-row empty"><span class="key-name">user:1</span><span class="key-data">—</span></div>
+          <div class="cache-key-row empty"><span class="key-name">user:2</span><span class="key-data">—</span></div>
+          <div class="cache-key-row empty"><span class="key-name">user:3</span><span class="key-data">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="panel log-panel">
+    <div class="panel-header">
+      <div class="dot green"></div>
+      <h2>Activity Log</h2>
+      <button class="btn purple" style="margin-left:auto; padding:4px 12px; font-size:11px" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="empty-state" style="padding:6px">Хүсэлт явуулахад лог харагдана...</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:3000';
+let hits = 0, misses = 0, invalids = 0;
+let ttl = 15;
+
+// TTL range sync
+document.getElementById('ttlRange').addEventListener('input', e => {
+  document.getElementById('ttlDisplay').textContent = e.target.value;
+});
+
+async function applyTTL() {
+  const val = parseInt(document.getElementById('ttlRange').value);
+  try {
+    await fetch(`${API}/ttl`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({value: val})
+    });
+    ttl = val;
+    addLog(`TTL → ${val}s болгон өөрчлөв`, 'ttl-log', '⏱');
+  } catch {
+    addLog('Server холболт алдаа. Docker + server.js ажиллаж байна уу?', 'miss-log', '❌');
+  }
+}
+
+async function fetchUser(id) {
+  const box = document.getElementById('fetchResult');
+  box.className = 'result-box';
+  box.textContent = 'Хүсэлт явуулж байна...';
+  try {
+    const res = await fetch(`${API}/user/${id}`);
+    const data = await res.json();
+    const isHit = data.source === 'cache';
+    if (isHit) { hits++; } else { misses++; }
+    updateStats();
+    box.className = `result-box ${isHit ? 'hit' : 'miss'}`;
+    box.innerHTML = `<span class="badge ${isHit ? 'hit' : 'miss'}">${isHit ? '✅ CACHE HIT' : '❌ CACHE MISS'}</span>
+<br><br>source: <strong style="color:${isHit ? 'var(--hit)' : 'var(--miss)'}">${data.source}</strong>
+id: ${data.data.id} | name: <strong>${data.data.name}</strong> | email: ${data.data.email}`;
+    addLog(`GET /user/${id} → ${isHit ? 'CACHE HIT' : 'CACHE MISS'} [${data.source}]`, isHit ? 'hit-log' : 'miss-log', isHit ? '✅' : '❌');
+    await refreshCacheState();
+  } catch {
+    box.textContent = '❌ Server холболт алдаа. Backend ажиллаж байна уу?';
+    addLog('Server холболт алдаа', 'miss-log', '❌');
+  }
+}
+
+async function updateUser() {
+  const id = document.getElementById('updateUserId').value;
+  const name = document.getElementById('updateName').value.trim();
+  const box = document.getElementById('updateResult');
+  if (!name) { box.textContent = '⚠️ Шинэ нэр оруулна уу'; return; }
+  try {
+    const res = await fetch(`${API}/user/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    invalids++;
+    updateStats();
+    box.className = 'result-box miss';
+    box.innerHTML = `<span class="badge miss">🗑 CACHE INVALIDATED</span>
+<br><br>user:${id} cache key устгагдлаа
+name → <strong>${data.data.name}</strong>`;
+    // update button label
+    document.getElementById(`uname${id}`).textContent = name;
+    document.querySelector(`#updateUserId option[value="${id}"]`).textContent = `user:${id} — ${name}`;
+    addLog(`PUT /user/${id} → name="${name}" | cache key устгав`, 'update-log', '🗑');
+    await refreshCacheState();
+  } catch {
+    addLog('Server холболт алдаа', 'miss-log', '❌');
+  }
+}
+
+async function refreshCacheState() {
+  const container = document.getElementById('cacheState');
+  const rows = [];
+  for (let i = 1; i <= 3; i++) {
+    try {
+      const res = await fetch(`${API}/cache/${i}`);
+      const d = await res.json();
+      rows.push(d);
+    } catch {
+      rows.push({exists: false, key: `user:${i}`});
+    }
+  }
+  container.innerHTML = rows.map(d => `
+    <div class="cache-key-row ${d.exists ? 'active' : 'empty'}">
+      <span class="key-name">${d.key}</span>
+      <span class="key-data">${d.exists ? `${d.data.name} · ${d.data.email}` : 'EMPTY'}</span>
+      ${d.exists ? `<span class="key-ttl">${d.ttl_remaining}s</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  const total = hits + misses;
+  document.getElementById('statHit').textContent = hits;
+  document.getElementById('statMiss').textContent = misses;
+  document.getElementById('statRate').textContent = total ? Math.round(hits/total*100)+'%' : '0%';
+  document.getElementById('statInvalid').textContent = invalids;
+}
+
+function addLog(msg, cls, icon) {
+  const list = document.getElementById('logList');
+  const empties = list.querySelectorAll('.empty-state');
+  empties.forEach(e => e.remove());
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const el = document.createElement('div');
+  el.className = `log-item ${cls}`;
+  el.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${icon} ${msg}</span>`;
+  list.prepend(el);
+  if (list.children.length > 30) list.lastChild.remove();
+}
+
+function clearLog() {
+  document.getElementById('logList').innerHTML = '<div class="empty-state" style="padding:6px">Log цэвэрлэгдлээ...</div>';
+}
+
+// Auto refresh cache state every 2s
+setInterval(refreshCacheState, 2000);
+refreshCacheState();
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+.app {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-app);
+  position: relative;
+}
+
+.panel {
+  display: flex;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.panelMain {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile bottom tab bar — hidden on desktop */
+.mobileTabBar {
+  display: none;
+}
+
+/* ── Desktop (≥768px): show all three, hide tab bar ── */
+@media (min-width: 768px) {
+  .mobileHidden,
+  .mobileVisible {
+    display: flex !important;
+  }
+  .mobileTabBar {
+    display: none !important;
+  }
+}
+
+/* ── Mobile (<768px): full-screen panels, show tab bar ── */
+@media (max-width: 767px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .panel {
+    position: absolute;
+    inset: 0;
+    bottom: 56px;
+    width: 100%;
+    height: calc(100dvh - 56px);
+    background: var(--bg-app);
+    transition: opacity 0.18s, transform 0.18s;
+  }
+
+  .panelMain {
+    flex: none;
+  }
+
+  .mobileHidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(12px);
+  }
+
+  .mobileVisible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+    z-index: 1;
+  }
+
+  .mobileTabBar {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    z-index: 10;
+    align-items: stretch;
+    /* safe area for iOS home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .tabItem {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text-3);
+    font-size: 10px;
+    font-family: var(--font);
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    transition: color 0.12s;
+    padding-bottom: 2px;
+  }
+
+  .tabItem:hover { color: var(--text-2); }
+
+  .tabActive {
+    color: var(--accent);
+  }
+
+  .tabActive svg {
+    stroke: var(--accent);
+  }
+}
+
